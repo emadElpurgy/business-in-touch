@@ -1,0 +1,48 @@
+
+    select 
+        `p`.`permit_number`,
+        `p`.`permit_date`,
+        `p`.`unit_name`,
+        `p`.`expiry`,
+        `p`.`quantity_in`,
+        `p`.`quantity_out`,
+        `p`.`price_in`,
+        `p`.`price_out`,
+        `p`.`notes`,
+        @balance:=(@balance + (`p`.`quantity_in` * `p`.`convertor`) - (`p`.`quantity_out` * `p`.`convertor`))as "credit2",
+        round((@balance / ),2)as "credit"
+    from 
+    (
+        select 
+            `permits`.`permit_number`,
+            `permits`.`permit_date`,
+            `units`.`unit_name`,
+            `permit_products`.`expiry`,
+            if(`permits`.`permit_type_id` in(1,4),`permit_products`.`quantity`,0)as "quantity_in",
+            if(`permits`.`permit_type_id` in(2,3),`permit_products`.`quantity`,0)as "quantity_out",
+            if(`permits`.`permit_type_id` in(1,4),`permit_products`.`price`,0)as "price_in",
+            if(`permits`.`permit_type_id` in(2,3),`permit_products`.`price`,0)as "price_out",
+            `product_units`.`convertor` as "convertor",
+            concat(convert(`permit_types`.`permit_type_name` using UTF8)," ",convert(`companies`.`company_name` using UTF8))as "notes"
+        from 
+            `permits`
+            inner join `permit_products` on(`permit_products`.`permit_id` = `permits`.`permit_id`)
+            inner join `units` on(`units`.`unit_id` = `permit_products`.`unit_id`)
+            inner join `permit_types` on(`permit_types`.`permit_type_id` = `permits`.`permit_type_id`)
+            inner join `companies` on(`companies`.`company_id` = `permits`.`company_id`)
+            inner join `products` on(`products`.`product_id` = `permit_products`.`product_id`)
+            inner join `product_units` on(`product_units`.`product_id` = `products`.`product_id` and `product_units`.`unit_id` = `units`.`unit_id`)
+        where 
+            `permits`.`permit_id` > 0 
+            and 
+            `permit_products`.`product_id` = "9"
+            and 
+            `permits`.`com_id` = "1"
+                and 
+                `permits`.`permit_date` >= "2022-01-01"
+                and 
+                `permits`.`permit_date` <= "2022-05-31"
+        order by 
+            `permits`.`permit_date`,if(permits.permit_type_id in(1,4),1,2),`permits`.`permit_number`
+    ) as `p`
+a:1:{i:0;s:5:"00000";}
